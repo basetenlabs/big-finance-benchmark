@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 from typing import Any
+from collections.abc import Awaitable, Callable
 
 import os
 
@@ -196,6 +197,7 @@ async def grade(
     max_output_tokens: int = 16384,
     judge_alias: str | None = None,
     rubric_labels: RubricLabels | None = None,
+    completion: Callable[..., Awaitable[Any]] | None = None,
 ) -> GradedRun:
     """Grade a run with the given judge.
 
@@ -214,6 +216,7 @@ async def grade(
     selected_rubric = [item.rubric[index - 1] for index in source_indices]
     submission = assess_submission(run.model_dump(mode="json"))
 
+    complete = completion or litellm.acompletion
     provider, snapshot = parse_model_id(judge_model_id)
     judge_model = _to_litellm_model(provider, snapshot)
 
@@ -270,7 +273,7 @@ async def grade(
     judge_cost_usd = 0.0
     if selected_rubric:
         async with sem:
-            response = await litellm.acompletion(**kwargs)
+            response = await complete(**kwargs)
         parsed = _parse_response(response)
     else:
         parsed = {"rubric": []}
@@ -338,7 +341,7 @@ async def grade(
             },
         }
         async with sem:
-            accuracy_response = await litellm.acompletion(**accuracy_kwargs)
+            accuracy_response = await complete(**accuracy_kwargs)
         accuracy = _parse_response(accuracy_response)
         if (
             set(accuracy) != {"explanation", "final_answer_correct"}
