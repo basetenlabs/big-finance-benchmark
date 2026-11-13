@@ -217,8 +217,13 @@ async def grade(
     submission = assess_submission(run.model_dump(mode="json"))
 
     complete = completion or litellm.acompletion
-    provider, snapshot = parse_model_id(judge_model_id)
-    judge_model = _to_litellm_model(provider, snapshot)
+    if completion is None:
+        provider, snapshot = parse_model_id(judge_model_id)
+        judge_model = _to_litellm_model(provider, snapshot)
+    else:
+        # An injected transport owns routing and may support additional providers.
+        provider = None
+        judge_model = judge_model_id
 
     trace = _format_trace(run.steps)
     user_prompt = _judge_user_prompt(
