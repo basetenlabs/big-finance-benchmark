@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
+from collections.abc import Awaitable, Callable
 
 from big_finance_harness import grader as revised
 from big_finance_harness import original_grader
@@ -69,13 +70,16 @@ async def grade(
     max_output_tokens: int = 16384,
     judge_alias: str | None = None,
     rubric_labels: RubricLabels | None = None,
+    completion: Callable[..., Awaitable[Any]] | None = None,
 ) -> GradedRun:
     if run.question_id != item.id or run.question != item.query:
         raise ValueError("Trace question does not match the grading dataset")
     identity = grading_identity(grader, judge_model_id, max_output_tokens=max_output_tokens,
                                 judge_alias=judge_alias, rubric_labels=rubric_labels)
     implementation = original_grader if grader == "original" else revised
-    extra = {"rubric_labels": rubric_labels} if grader == "revised" else {}
+    if grader == "original" and completion is not None:
+        raise ValueError("Injected completion is supported only by revised grading")
+    extra = {"rubric_labels": rubric_labels, "completion": completion} if grader == "revised" else {}
     result = await implementation.grade(run=run, item=item, judge_model_id=judge_model_id,
         max_output_tokens=max_output_tokens, judge_alias=judge_alias, **extra)
     result.grading = identity

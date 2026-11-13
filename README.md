@@ -248,3 +248,13 @@ If you use this benchmark or harness, please cite the paper
 
 Apache 2.0. See [`LICENSE`](LICENSE). The bundled 50-item dataset subset under
 `data/` is licensed separately under CC BY 4.0; see [`data/LICENSE-DATA`](data/LICENSE-DATA).
+
+### Embedding the revised grader
+
+`big_finance_harness.grading.grade(..., completion=async_callable)` accepts an
+optional LiteLLM-compatible async transport. It receives the same keyword arguments
+as `litellm.acompletion` and must return a compatible response. The transport may
+override routing, credentials, retry and timeout settings; prompts, schemas, label
+selection, validation and scoring remain owned by the harness. Without injection,
+the existing LiteLLM transport is used. Injection is supported for revised grading
+only. Do not mutate the messages or response schema in the transport adapter.
